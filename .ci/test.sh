@@ -1,6 +1,12 @@
 #!/bin/bash
 
-set -e -E -o pipefail
+set -e -E -o -u pipefail
+
+# defaults
+IN_UBUNTU_BASE_CONTAINER=${IN_UBUNTU_BASE_CONTAINER:-"false"}
+METHOD=${METHOD:-""}
+PRODUCES_ARTIFACTS=${PRODUCES_ARTIFACTS:-"false"}
+SANITIZERS=${SANITIZERS:-""}
 
 ARCH=$(uname -m)
 
@@ -53,11 +59,7 @@ if [[ $TASK == "if-else" ]]; then
 fi
 
 if [[ $TASK == "swig" ]]; then
-    if [[ $OS_NAME == "macos" ]]; then
-        cmake -B build -S . -DUSE_SWIG=ON -DAPPLE_OUTPUT_DYLIB=ON
-    else
-        cmake -B build -S . -DUSE_SWIG=ON
-    fi
+    cmake -B build -S . -DUSE_SWIG=ON
     cmake --build build -j4 || exit 1
     if [[ $OS_NAME == "linux" ]] && [[ $COMPILER == "gcc" ]]; then
         objdump -T $BUILD_DIRECTORY/lib_lightgbm.so > $BUILD_DIRECTORY/objdump.log || exit 1
@@ -83,11 +85,11 @@ if [[ $TASK == "lint" ]]; then
         'r-lintr>=3.1'
     source activate $CONDA_ENV
     echo "Linting Python code"
-    sh ${BUILD_DIRECTORY}/.ci/lint-python.sh || exit 1
+    bash ${BUILD_DIRECTORY}/.ci/lint-python.sh || exit 1
     echo "Linting R code"
     Rscript ${BUILD_DIRECTORY}/.ci/lint_r_code.R ${BUILD_DIRECTORY} || exit 1
     echo "Linting C++ code"
-    sh ${BUILD_DIRECTORY}/.ci/lint-cpp.sh || exit 1
+    bash ${BUILD_DIRECTORY}/.ci/lint-cpp.sh || exit 1
     exit 0
 fi
 
@@ -292,7 +294,7 @@ pytest $BUILD_DIRECTORY/tests || exit 1
 if [[ $TASK == "regular" ]]; then
     if [[ $PRODUCES_ARTIFACTS == "true" ]]; then
         if [[ $OS_NAME == "macos" ]]; then
-            cp $BUILD_DIRECTORY/lib_lightgbm.so $BUILD_ARTIFACTSTAGINGDIRECTORY/lib_lightgbm.dylib
+            cp $BUILD_DIRECTORY/lib_lightgbm.dylib $BUILD_ARTIFACTSTAGINGDIRECTORY/lib_lightgbm.dylib
         else
             if [[ $COMPILER == "gcc" ]]; then
                 objdump -T $BUILD_DIRECTORY/lib_lightgbm.so > $BUILD_DIRECTORY/objdump.log || exit 1
