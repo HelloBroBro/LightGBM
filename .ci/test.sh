@@ -42,7 +42,7 @@ else
     export MACOSX_DEPLOYMENT_TARGET=12.0
 fi
 
-if [[ "${TASK}" == "r-package" ]] || [[ "${TASK}" == "r-rchk" ]]; then
+if [[ "${TASK}" == "r-package" ]]; then
     bash "${BUILD_DIRECTORY}/.ci/test-r-package.sh" || exit 1
     exit 0
 fi
@@ -98,6 +98,9 @@ if [[ $TASK == "swig" ]]; then
 fi
 
 if [[ $TASK == "lint" ]]; then
+    pwsh -command "Install-Module -Name PSScriptAnalyzer -Scope CurrentUser -SkipPublisherCheck"
+    echo "Linting PowerShell code"
+    pwsh -file "./.ci/lint-powershell.ps1" || exit 0
     conda create -q -y -n "${CONDA_ENV}" \
         "${CONDA_PYTHON_REQUIREMENT}" \
         'cmakelint>=1.4.3' \
